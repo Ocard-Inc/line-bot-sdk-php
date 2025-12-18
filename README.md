@@ -2,193 +2,197 @@ line-bot-sdk-php
 ==
 
 [![Build Status](https://travis-ci.org/line/line-bot-sdk-php.svg?branch=master)](https://travis-ci.org/line/line-bot-sdk-php)
-[![Latest Stable Version](https://poser.pugx.org/linecorp/line-bot-sdk/v/stable.svg)](https://packagist.org/packages/linecorp/line-bot-sdk)
-[![License](https://poser.pugx.org/linecorp/line-bot-sdk/license.svg)](https://packagist.org/packages/linecorp/line-bot-sdk)
 
-SDK of the LINE BOT API Trial for PHP.
+SDK of the LINE Messaging API for PHP.
+
+About the LINE Messaging API
+--
+
+See the official API documentation for more information.
+
+English: [https://devdocs.line.me/en/](https://devdocs.line.me/en/)<br>
+Japanese: [https://devdocs.line.me/ja/](https://devdocs.line.me/ja/)
 
 Installation
 --
 
-The LINE BOT API SDK can be installed with [Composer](https://getcomposer.org/).
+Install the LINE Messaging API SDK using [Composer](https://getcomposer.org/).
 
 ```
-composer require linecorp/line-bot-sdk
+$ composer require linecorp/line-bot-sdk
 ```
 
-Note
+Getting started
 --
 
-If you use __PHP 5.5 or lower__, please use this SDK with polyfill of [hash_equals()](http://php.net/manual/function.hash-equals.php).
+### Create the bot client instance
 
-e.g.
+The bot client instance is a handler of the Messaging API.
 
-- [indigophp/hash-compat](https://packagist.org/packages/indigophp/hash-compat)
+```php
+$httpClient = new \LINE\LINEBot\HTTPClient\CurlHTTPClient('<channel access token>');
+$bot = new \LINE\LINEBot($httpClient, ['channelSecret' => '<channel secret>']);
+```
 
-Methods
+The constructor of the bot client requires an instance of `HTTPClient`.
+This library provides `CurlHTTPClient` by default.
+
+### Call API
+
+You can call an API through the bot client instance.
+
+A very simple example:
+
+```php
+$response = $bot->replyText('<reply token>', 'hello!');
+```
+
+This procedure sends a message to the destination that is associated with `<reply token>`.
+
+A more advanced example:
+
+```php
+$textMessageBuilder = new \LINE\LINEBot\MessageBuilder\TextMessageBuilder('hello');
+$response = $bot->replyMessage('<reply token>', $textMessageBuilder);
+if ($response->isSucceeded()) {
+    echo 'Succeeded!';
+    return;
+}
+
+// Failed
+echo $response->getHTTPStatus . ' ' . $response->getRawBody();
+```
+
+`LINEBot#replyMessage()` takes the reply token and `MessageBuilder`.
+The method sends a message that is built by `MessageBuilder` to the destination.
+
+Components
 --
 
-### Constructor
+### MessageBuilder
 
-#### new LINEBot(array $args, HTTPClient $client)
+The type of message that is sent depends on the type of instance of `MessageBuilder`.
+For example, the method sends a text message if you pass `TextMessageBuilder` and it sends an image message if you pass `ImaageMessageBuilder`.
 
-Create a `LINEBot` constructor.
+For more detailed information on `MessageBuilder`, see `\LINE\LINEBot\MessageBuilder` and the namespace.
 
-```php
-$config = [
-    'channelId' => '<your channel ID>',
-    'channelSecret' => '<your channel secret>',
-    'channelMid' => '<your channel MID>',
-];
-$bot = new LINEBot($config, new GuzzleHTTPClient($config));
-```
+Other methods that take `MessageBuilder` behave in the same way.
 
-### Sending Message
+### Response
 
-#### LINEBot#sendText($mid, $text)
+Methods that call API returns `Response`. Response has three methods;
 
-Send a text message to mid(s).  
-[https://developers.line.me/bot-api/api-reference#sending_message_text](https://developers.line.me/bot-api/api-reference#sending_message_text)
+- `Response#isSucceeded()`
+- `Response#getHTTPStatus()`
+- `Response#getRawBody()`
+- `Response#getJSONDecodedBody()`
+- `Response#getHeader($name)`
+- `Response#getHeaders()`
 
-```php
-$res = $bot->sendText(['TARGET_MID'], 'Message');
-```
+You can use these methods to check the response status and take response body.
 
-#### LINEBot#sendImage($mid, $imageURL, $previewURL)
+#### `Response#isSucceeded()`
 
-Send an image to mid(s).  
-[https://developers.line.me/bot-api/api-reference#sending_message_image](https://developers.line.me/bot-api/api-reference#sending_message_image)
+Returns a Boolean value. The return value represents whether the request succeeded or not.
 
-```php
-$bot->sendImage(['TARGET_MID'] 'http://example.com/image.jpg', 'http://example.com/preview.jpg');
-```
+#### `Response#getHTTPStatus()`
 
-#### LINEBot#sendVideo($mid, $videoURL, $previewImageURL)
+Returns the HTTP status code of a response.
 
-Send a video to mid(s).  
-[https://developers.line.me/bot-api/api-reference#sending_message_video](https://developers.line.me/bot-api/api-reference#sending_message_video)
+#### `Response#getRawBody()`
 
-```php
-$bot->sendVideo(['TARGET_MID'], 'http://example.com/video.mp4', 'http://example.com/video_preview.jpg');
-```
+Returns the body of the response as raw data (a byte string).
 
-#### LINEBot#sendAudio($mid, $audioURL, $durationMillis)
+#### `Response#getJSONDecodedBody()`
 
-Send a voice message to mid(s).  
-[https://developers.line.me/bot-api/api-reference#sending_message_audio](https://developers.line.me/bot-api/api-reference#sending_message_audio)
+Returns the body that is decoded in JSON. This body is an array.
 
-```php
-$bot->sendAudio(['TARGET_MID'], 'http://example.com/audio.m4a', 5000);
-```
+#### `Response#getHeader($name)`
 
-#### LINEBot#sendLocation($mid, $text, $latitude, $longitude)
+This method returns a response header string, or null if the response does not have a header of that name.
 
-Send location information to mid(s).  
-[https://developers.line.me/bot-api/api-reference#sending_message_location](https://developers.line.me/bot-api/api-reference#sending_message_location)
+#### `Response#getHeaders()`
 
-```php
-$bot->sendLocation(['TARGET_MID'], '2 Chome-21-1 Shibuya Tokyo 150-0002, Japan', 35.658240, 139.703478);
-```
+This method returns all of the response headers as string array.
 
-#### LINEBot#sendSticker($mid, $stkid, $stkpkgid, $stkver)
+### Webhook
 
-Send a sticker to mid(s).  
-[https://developers.line.me/bot-api/api-reference#sending_message_sticker](https://developers.line.me/bot-api/api-reference#sending_message_sticker)
+LINE's server sends user actions (such as a message, image, or location) to your bot server.
+Request of that contains event(s); event is action of the user.
 
-```php
-$bot->sendSticker(['TARGET_MID'], 1, 1, 100);
-```
+The following shows how the webhook is handled:
 
-#### LINEBot#sendRichMessage($mid, $imageURL, $altText, Markup $markup)
+1. Receive webhook from LINE's server.
+2. Parse request payload by `LINEBot#parseEventRequest($body, $signature)`.
+3. Iterate parsed events and some react as you like.
 
-Send a rich message to mid(s).  
-[https://developers.line.me/bot-api/api-reference#sending_rich_content_message_request](https://developers.line.me/bot-api/api-reference#sending_rich_content_message_request)
+The following examples show how webhooks are handled:
 
-```php
-$markup = (new Markup(1040))
-    ->setAction('SOMETHING', 'something', 'https://line.me')
-    ->addListener('SOMETHING', 0, 0, 1040, 1040);
-$bot->sendRichMessage(['TARGET_MID'], 'https://example.com/image.jpg', "Alt text", $markup);
-```
+- [EchoBot: Route.php](/examples/EchoBot/src/LINEBot/EchoBot/Route.php)
+- [KitchenSink: Route.php](/examples/KitchenSink/src/LINEBot/KitchenSink/Route.php)
 
-#### LINEBot#sendMultipleMessages($mid, MultipleMessages $multipleMessages)
-
-Send multiple messages to mids(s).  
-[https://developers.line.me/bot-api/api-reference#sending_multiple_messages_request](https://developers.line.me/bot-api/api-reference#sending_multiple_messages_request)
-
-```php
-$multipleMessages = (new \LINE\LINEBot\Message\MultipleMessages())
-    ->addText('hello!')
-    ->addImage('http://example.com/image.jpg', 'http://example.com/preview.jpg')
-    ->addAudio('http://example.com/audio.m4a', 6000)
-    ->addVideo('http://example.com/video.mp4', 'http://example.com/video_preview.jpg')
-    ->addLocation('2 Chome-21-1 Shibuya Tokyo 150-0002, Japan', 35.658240, 139.703478)
-    ->addSticker(1, 1, 100);
-$bot->sendMultipleMessages(['TARGET_MID'], $multipleMessages);
-```
-
-### Getting Message Contents
-
-#### LINEBot#getMessageContent($messageId, $fileHandler = null)
-
-Retrieve the content of a user's message which is an image or video file.  
-[https://developers.line.me/bot-api/api-reference#getting_message_content_request](https://developers.line.me/bot-api/api-reference#getting_message_content_request)
-
-```php
-$content = $bot->getMessageContent('1234567890');
-```
-
-#### LINEBot#getMessageContentPreview($messageId, $fileHandler = null)
-
-Retrieve thumbnail preview of the message.  
-[https://developers.line.me/bot-api/api-reference#getting_message_content_preview_request](https://developers.line.me/bot-api/api-reference#getting_message_content_preview_request)
-
-```php
-$content = $bot->getMessageContentPreview('1234567890');
-```
-
-### Getting User Profile
-
-#### LINEBot#getUserProfile($mid)
-
-Retrieve user profile(s) that is associated with mid(s).  
-[https://developers.line.me/bot-api/api-reference#getting_user_profile_information_request](https://developers.line.me/bot-api/api-reference#getting_user_profile_information_request)
-
-```php
-$profile = $bot->getUserProfile(['TARGET_MID']);
-```
-
-### Signature Validation
-
-#### LINEBot#validateSignature($json, $signature)
-
-Validate signature.
-
-```php
-$isValid = $bot->validateSignature($requestJSON, 'expected-signature');
-```
-
-Run Tests
+More information
 --
 
-### Execute with `phpunit`
-
-```
-composer install
-./vendor/bin/phpunit ./tests
-```
-
-### Execute `make test`
-
-```
-composer install
-make
-```
+For more information, see the [official API documents](#about-the-line-messaging-api) and PHPDoc.
+If it's your first time using this library, we recommend taking a look at `examples` and the PHPDoc of `\LINE\LINEBot`.
 
 Hints
 --
 
-You can find some implementation examples [here](./examples).
+### Examples
+
+This repository contains two examples of how to use the LINE Messaging API.
+
+#### [EchoBot](/examples/EchoBot)
+
+A simple sample implementation. This application reacts to text messages that are sent from users.
+
+#### [KitchenSink](/examples/KitchenSink)
+
+A full-stack (and slightly complex) sample implementation. This application demonstrates a practical use of the LINE Messaging API.
+
+### PHPDoc
+
+This library provides PHPDoc to describe how to use the methods. You can generate the documentation using [apigen](http://www.apigen.org/) using the following command.
+
+```
+$ make doc
+```
+
+The HTML files are generated in `docs/`.
+
+### Official API documentation
+
+[Official API documents](#about-the-line-messaging-api) shows the detail of  Messaging API and fundamental usage of SDK.
+
+Notes
+--
+
+### How to switch the HTTP client implementation
+
+1. Implement `\LINE\LINEBot\HTTPClient`
+2. Pass the implementation to the constructor of `\LINE\LINEBot`
+
+Please refer [CurlHTTPClient](/src/LINEBot/HTTPClient/CurlHTTPClient.php) that is the default HTTP client implementation.
+
+Requirements
+--
+
+- PHP 5.6 or later
+
+For SDK developers
+--
+
+Please refer [HACKING.md](/HACKING.md).
+
+See also
+--
+
+### [line-bot-sdk-tiny](./line-bot-sdk-tiny)
+
+A very simple SDK (subset) for the LINE Messaging API for PHP.
+line-bot-sdk-tiny provides a simple interface and functions which makes it a good way to learn how to use the LINE Messaging API.
 
 License
 --
@@ -200,7 +204,7 @@ LINE Corporation licenses this file to you under the Apache License,
 version 2.0 (the "License"); you may not use this file except in compliance
 with the License. You may obtain a copy of the License at:
 
-  http://www.apache.org/licenses/LICENSE-2.0
+  https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -208,11 +212,3 @@ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 License for the specific language governing permissions and limitations
 under the License.
 ```
-
-See Also
---
-
-- [https://business.line.me/](https://business.line.me/)
-- [https://developers.line.me/bot-api/overview](https://developers.line.me/bot-api/overview)
-- [https://developers.line.me/bot-api/getting-started-with-bot-api-trial](https://developers.line.me/bot-api/getting-started-with-bot-api-trial)
-
