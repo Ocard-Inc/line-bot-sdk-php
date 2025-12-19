@@ -1,5 +1,5 @@
 {
-  "name": "linecorp/line-bot-sdk",
+  "name": "ocard/line-bot-sdk",
   "description": "SDK of the LINE BOT API for PHP",
   "keywords": [
     "LINE",
@@ -7,16 +7,12 @@
     "sdk"
   ],
   "type": "library",
-  "homepage": "https://github.com/line/line-bot-sdk-php",
+  "homepage": "https://github.com/Ocard-Inc/line-bot-sdk-php",
   "license": "Apache License Version 2.0",
   "authors": [
     {
-      "name": "moznion",
-      "email": "moznion@gmail.com"
-    },
-    {
-      "name": "Satoru Yoshihara",
-      "email": "vaduz0@gmail.com"
+      "name": "leo",
+      "email": "leo@ocard.co"
     }
   ],
   "require": {
