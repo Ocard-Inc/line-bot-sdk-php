@@ -48,12 +48,12 @@ class CarouselColumnTemplateBuilder implements TemplateBuilder
      * @param string $thumbnailImageUrl
      * @param TemplateActionBuilder[] $actionBuilders
      */
-    public function __construct($title, $text, $thumbnailImageUrl, array $actionBuilders)
-    {        
+    public function __construct($title, $text, $thumbnailImageUrl, $actionBuilders)
+    {
         $this->title = $title;
         $this->text = $text;
         $this->thumbnailImageUrl = $thumbnailImageUrl;
-        $this->actionBuilders = $actionBuilders;
+        $this->actionBuilders = is_array($actionBuilders) ? $actionBuilders : [];
     }
 
     /**

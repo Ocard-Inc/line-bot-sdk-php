@@ -80,7 +80,7 @@ class BaseEvent
      */
     public function isUserEvent()
     {
-        return $this->event['source']['type'] === EventSourceType::USER;
+        return isset($this->event['source']['type']) && $this->event['source']['type'] === EventSourceType::USER;
     }
 
     /**
@@ -90,7 +90,7 @@ class BaseEvent
      */
     public function isGroupEvent()
     {
-        return $this->event['source']['type'] === EventSourceType::GROUP;
+        return isset($this->event['source']['type']) && $this->event['source']['type'] === EventSourceType::GROUP;
     }
 
     /**
@@ -100,7 +100,7 @@ class BaseEvent
      */
     public function isRoomEvent()
     {
-        return $this->event['source']['type'] === EventSourceType::ROOM;
+        return isset($this->event['source']['type']) && $this->event['source']['type'] === EventSourceType::ROOM;
     }
 
     /**

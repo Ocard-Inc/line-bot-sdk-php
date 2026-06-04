@@ -75,7 +75,7 @@ class EventRequestParser
 
         foreach ($parsedReq['events'] as $eventData) {
             $eventType = $eventData['type'];
-            $eventClass = self::$eventType2class[$eventType];
+            $eventClass = isset(self::$eventType2class[$eventType]) ? self::$eventType2class[$eventType] : null;
             if (!isset($eventClass)) {
                 throw new UnknownEventTypeException('Unknown event type has come: ' . $eventType);
             }
@@ -98,7 +98,7 @@ class EventRequestParser
     private static function parseMessageEvent($eventData)
     {
         $messageType = $eventData['message']['type'];
-        $messageClass = self::$messageType2class[$messageType];
+        $messageClass = isset(self::$messageType2class[$messageType]) ? self::$messageType2class[$messageType] : null;
         if (!isset($messageClass)) {
             throw new UnknownMessageTypeException('Unknown message type has come: ' . $messageType);
         }
