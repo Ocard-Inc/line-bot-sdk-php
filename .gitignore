@@ -6,3 +6,4 @@ composer.phar
 *.iml
 vendor/
 devtool/req_mirror
+.DS_Store

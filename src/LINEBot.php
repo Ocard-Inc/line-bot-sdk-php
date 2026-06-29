@@ -112,7 +112,7 @@ class LINEBot
      * @return Response
      */
     public function replyText($replyToken, $text, ...$extraTexts)
-    {   
+    {
         $textMessageBuilder = new TextMessageBuilder($text, ...$extraTexts);
         return $this->replyMessage($replyToken, $textMessageBuilder);
     }
@@ -122,14 +122,20 @@ class LINEBot
      *
      * @param string $to Identifier of destination.
      * @param MessageBuilder $messageBuilder Message builder to send.
-     * @return Response
+     * @param array $options Optional. Supports customAggregationUnits.
      */
-    public function pushMessage($to, MessageBuilder $messageBuilder)
+    public function pushMessage($to, MessageBuilder $messageBuilder, array $options = [])
     {
-        return $this->httpClient->post($this->endpointBase . '/v2/bot/message/push', [
-            'to' => $to,
+        $payload = [
+            'to'       => $to,
             'messages' => $messageBuilder->buildMessage(),
-        ]);
+        ];
+
+        if (!empty($options['customAggregationUnits'])) {
+            $payload['customAggregationUnits'] = $options['customAggregationUnits'];
+        }
+
+        return $this->httpClient->post($this->endpointBase . '/v2/bot/message/push', $payload);
     }
 
     /**
@@ -194,11 +200,11 @@ class LINEBot
     }
 
     /**
-    by Vinek 20200409
-    PNP push
+    * by Vinek 20200409
+    * PNP push
     **/
     public function pushPnp($to, $messageBuilder, $delivery_tag = '')
-    {   
+    {
         $header = [];
         if($delivery_tag)
         {
@@ -211,7 +217,7 @@ class LINEBot
     }
 
     /**
-    by Vinek 20201204
+    * by Vinek 20201204
     **/
     public function markAsRead($userId)
     {
@@ -219,5 +225,47 @@ class LINEBot
             'chat' => [
                 'userId' => $userId]];
         return $this->httpClient->post($this->endpointBase . '/v2/bot/message/markAsRead', $message);
+    }
+
+    /**
+     * 取得本月使用過的 customAggregationUnit 名稱清單
+     * @see https://developers.line.biz/en/reference/messaging-api/#get-a-list-of-unit-names-assigned-during-this-month
+     *
+     * @param int $limit  最多 100（LINE 上限）
+     * @param string|null $start  分頁 cursor，第一頁不帶
+     * @return Response
+     */
+    public function getAggregationList($limit = 100, $start = null)
+    {
+        $params = ['limit' => $limit];
+
+        if ($start) {
+            $params['start'] = $start;
+        }
+
+        $url = $this->endpointBase . '/v2/bot/message/aggregation/list?' . http_build_query($params);
+        return $this->httpClient->get($url);
+    }
+
+    /**
+     * 取得指定 aggregation unit 的開封率等統計數據（最多查 30 天）
+     * @see https://developers.line.biz/en/reference/messaging-api/#get-statistics-per-unit
+     *
+     * @param string $customAggregationUnit  推播時帶入的 unit 名稱
+     * @param string $from  起始日期 yyyyMMdd
+     * @param string $to    結束日期 yyyyMMdd，最多與 $from 相差 30 天
+     * @return Response
+     */
+    public function getAggregationStats($customAggregationUnit, $from, $to)
+    {
+        $params = [
+            'customAggregationUnit' => $customAggregationUnit,
+            'from' => $from,
+            'to' => $to,
+        ];
+
+        $url = $this->endpointBase . '/v2/bot/insight/message/event/aggregation?' . http_build_query($params);
+
+        return $this->httpClient->get($url);
     }
 }
