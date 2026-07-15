@@ -87,7 +87,7 @@ class CurlHTTPClient implements HTTPClient
      * @param string $url
      * @param array $additionalHeader
      * @param array $reqBody
-     * @return Response Response 物件；若重試後仍為連線層錯誤，回傳 httpStatus=0 的失敗 Response（不中斷呼叫端流程）。
+     * @return Response Response 物件；若發生連線層錯誤，回傳 httpStatus=0 的失敗 Response（不中斷呼叫端流程）。
      */
     private function sendRequest($method, $url, array $additionalHeader, array $reqBody)
     {
@@ -100,6 +100,8 @@ class CurlHTTPClient implements HTTPClient
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_BINARYTRANSFER => true,
             CURLOPT_HEADER => true,
+            // 強制走 HTTP/1.1，避免長時間迴圈連續呼叫同一 host 時，HTTP/2 連線多工造成的 framing error（errno 16）
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
         ];
 
         if ($method === 'POST') {
@@ -117,26 +119,9 @@ class CurlHTTPClient implements HTTPClient
 
         if ($curl->errno()) {
             $logBody = isset($options[CURLOPT_POSTFIELDS]) ? $options[CURLOPT_POSTFIELDS] : '';
-
-            // HTTP/2 framing error (errno 16) 多為連線重用造成的暫時性錯誤，重試一次並強制建立新連線；其他 errno 不重試
-            if ($curl->errno() === 16) {
-                log_message('error', '[CurlHTTPClient] curl error, retrying with fresh connection | url=' . $url . ' | body=' . $logBody . ' | errno=' . $curl->errno() . ' | error=' . $curl->error());
-
-                $curl = new Curl($url);
-                $options[CURLOPT_FRESH_CONNECT] = true;
-                $curl->setoptArray($options);
-                $result = $curl->exec();
-
-                if ($curl->errno()) {
-                    log_message('error', '[CurlHTTPClient] curl error after retry | url=' . $url . ' | body=' . $logBody . ' | errno=' . $curl->errno() . ' | error=' . $curl->error());
-                    // 重試後仍失敗：不中斷呼叫端流程，回傳失敗 Response 讓 isSucceeded() 判定為 false
-                    return new Response(0, '', []);
-                }
-            } else {
-                log_message('error', '[CurlHTTPClient] curl error | url=' . $url . ' | body=' . $logBody . ' | errno=' . $curl->errno() . ' | error=' . $curl->error());
-                // 不重試：不中斷呼叫端流程，回傳失敗 Response 讓 isSucceeded() 判定為 false
-                return new Response(0, '', []);
-            }
+            log_message('error', '[CurlHTTPClient] curl error | url=' . $url . ' | body=' . $logBody . ' | errno=' . $curl->errno() . ' | error=' . $curl->error());
+            // 不中斷呼叫端流程，回傳失敗 Response 讓 isSucceeded() 判定為 false
+            return new Response(0, '', []);
         }
 
         $info = $curl->getinfo();
